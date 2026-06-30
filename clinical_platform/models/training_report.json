@@ -1,0 +1,262 @@
+{
+  "diabetes": {
+    "n_samples": 768,
+    "n_features": 8,
+    "feature_order": [
+      "Pregnancies",
+      "Glucose",
+      "BloodPressure",
+      "SkinThickness",
+      "Insulin",
+      "BMI",
+      "DiabetesPedigreeFunction",
+      "Age"
+    ],
+    "feature_importances": [
+      {
+        "feature": "Glucose",
+        "importance": 0.315
+      },
+      {
+        "feature": "BMI",
+        "importance": 0.1891
+      },
+      {
+        "feature": "Age",
+        "importance": 0.1448
+      },
+      {
+        "feature": "Insulin",
+        "importance": 0.0982
+      },
+      {
+        "feature": "DiabetesPedigreeFunction",
+        "importance": 0.0848
+      },
+      {
+        "feature": "Pregnancies",
+        "importance": 0.0622
+      },
+      {
+        "feature": "SkinThickness",
+        "importance": 0.061
+      },
+      {
+        "feature": "BloodPressure",
+        "importance": 0.0448
+      }
+    ],
+    "held_out_test_accuracy_uncalibrated": 0.7468,
+    "held_out_test_accuracy_calibrated": 0.7468,
+    "5fold_cv_mean_accuracy": 0.7578,
+    "5fold_cv_std": 0.0383,
+    "held_out_auc": 0.8235,
+    "held_out_brier_score": 0.1647,
+    "model_file": "diabetes_model.pkl"
+  },
+  "heart": {
+    "n_samples": 1190,
+    "n_features": 11,
+    "feature_order": [
+      "age",
+      "sex",
+      "chest pain type",
+      "resting bp s",
+      "cholesterol",
+      "fasting blood sugar",
+      "resting ecg",
+      "max heart rate",
+      "exercise angina",
+      "oldpeak",
+      "ST slope"
+    ],
+    "feature_importances": [
+      {
+        "feature": "ST slope",
+        "importance": 0.2578
+      },
+      {
+        "feature": "chest pain type",
+        "importance": 0.1784
+      },
+      {
+        "feature": "exercise angina",
+        "importance": 0.1103
+      },
+      {
+        "feature": "oldpeak",
+        "importance": 0.1042
+      },
+      {
+        "feature": "max heart rate",
+        "importance": 0.0913
+      },
+      {
+        "feature": "cholesterol",
+        "importance": 0.077
+      },
+      {
+        "feature": "age",
+        "importance": 0.052
+      },
+      {
+        "feature": "sex",
+        "importance": 0.0486
+      },
+      {
+        "feature": "resting bp s",
+        "importance": 0.046
+      },
+      {
+        "feature": "fasting blood sugar",
+        "importance": 0.0177
+      },
+      {
+        "feature": "resting ecg",
+        "importance": 0.0168
+      }
+    ],
+    "held_out_test_accuracy_uncalibrated": 0.8866,
+    "held_out_test_accuracy_calibrated": 0.8908,
+    "5fold_cv_mean_accuracy": 0.8815,
+    "5fold_cv_std": 0.0369,
+    "held_out_auc": 0.9506,
+    "held_out_brier_score": 0.083,
+    "model_file": "heart_model.pkl"
+  },
+  "kidney": {
+    "n_samples": 158,
+    "n_features": 11,
+    "feature_order": [
+      "Age",
+      "Blood Pressure",
+      "Specific Gravity",
+      "Albumin",
+      "Sugar",
+      "Blood Glucose Random",
+      "Blood Urea",
+      "Serum Creatinine",
+      "Hemoglobin",
+      "Hypertension",
+      "Diabetes Mellitus"
+    ],
+    "feature_importances": [
+      {
+        "feature": "Albumin",
+        "importance": 0.2442
+      },
+      {
+        "feature": "Hemoglobin",
+        "importance": 0.2379
+      },
+      {
+        "feature": "Serum Creatinine",
+        "importance": 0.2153
+      },
+      {
+        "feature": "Specific Gravity",
+        "importance": 0.112
+      },
+      {
+        "feature": "Blood Urea",
+        "importance": 0.0731
+      },
+      {
+        "feature": "Hypertension",
+        "importance": 0.0688
+      },
+      {
+        "feature": "Diabetes Mellitus",
+        "importance": 0.0287
+      },
+      {
+        "feature": "Blood Glucose Random",
+        "importance": 0.0175
+      },
+      {
+        "feature": "Sugar",
+        "importance": 0.0012
+      },
+      {
+        "feature": "Age",
+        "importance": 0.0007
+      },
+      {
+        "feature": "Blood Pressure",
+        "importance": 0.0004
+      }
+    ],
+    "held_out_test_accuracy_uncalibrated": 0.9688,
+    "held_out_test_accuracy_calibrated": 0.9688,
+    "5fold_cv_mean_accuracy": 0.9938,
+    "5fold_cv_std": 0.0125,
+    "held_out_auc": 1.0,
+    "held_out_brier_score": 0.0145,
+    "model_file": "kidney_model.pkl"
+  },
+  "breast_cancer": {
+    "n_samples": 569,
+    "n_features": 10,
+    "feature_order": [
+      "mean radius",
+      "mean texture",
+      "mean perimeter",
+      "mean area",
+      "mean smoothness",
+      "mean compactness",
+      "mean concavity",
+      "mean concave points",
+      "mean symmetry",
+      "mean fractal dimension"
+    ],
+    "feature_importances": [
+      {
+        "feature": "mean concave points",
+        "importance": 0.1767
+      },
+      {
+        "feature": "mean texture",
+        "importance": 0.1496
+      },
+      {
+        "feature": "mean area",
+        "importance": 0.1369
+      },
+      {
+        "feature": "mean concavity",
+        "importance": 0.1116
+      },
+      {
+        "feature": "mean radius",
+        "importance": 0.1084
+      },
+      {
+        "feature": "mean smoothness",
+        "importance": 0.103
+      },
+      {
+        "feature": "mean perimeter",
+        "importance": 0.0994
+      },
+      {
+        "feature": "mean symmetry",
+        "importance": 0.0418
+      },
+      {
+        "feature": "mean fractal dimension",
+        "importance": 0.039
+      },
+      {
+        "feature": "mean compactness",
+        "importance": 0.0337
+      }
+    ],
+    "held_out_test_accuracy_uncalibrated": 0.9298,
+    "held_out_test_accuracy_calibrated": 0.9386,
+    "5fold_cv_mean_accuracy": 0.9314,
+    "5fold_cv_std": 0.0205,
+    "held_out_auc": 0.9838,
+    "held_out_brier_score": 0.0507,
+    "model_file": "breast_cancer_model.pkl"
+  }
+}
