@@ -50,7 +50,7 @@ SPECIALTY_FIELDS = {
     # ML — Pima Indians Diabetes Database (NIDDK, 768 patients, real data)
     # ======================================================================
     "metabolic": {
-        "title": "Metabolic & Endocrinology — Diabetes",
+        "title": "🍬 Metabolic & Endocrinology — Diabetes",
         "category": "Endocrine & Metabolic",
         "description": "Real machine-learning risk model trained on the Pima Indians Diabetes dataset (NIDDK).",
         "engine": {
@@ -75,7 +75,7 @@ SPECIALTY_FIELDS = {
     # ML — Statlog/Cleveland-style Heart Disease dataset (1190 patients)
     # ======================================================================
     "cardio": {
-        "title": "Cardiovascular Medicine",
+        "title": "🫀 Cardiovascular Medicine",
         "category": "Cardiovascular",
         "description": "Real machine-learning risk model trained on a clinical heart-disease cohort dataset.",
         "engine": {
@@ -103,7 +103,7 @@ SPECIALTY_FIELDS = {
     # ML — UCI Chronic Kidney Disease dataset (158 patients, real data)
     # ======================================================================
     "nephrology": {
-        "title": "Nephrology & Renal Care",
+        "title": "🫘 Nephrology & Renal Care",
         "category": "Renal",
         "description": "Real machine-learning risk model trained on the UCI Chronic Kidney Disease dataset.",
         "engine": {
@@ -133,7 +133,7 @@ SPECIALTY_FIELDS = {
     # ML — Breast Cancer Wisconsin (Diagnostic) dataset, scikit-learn built-in
     # ======================================================================
     "oncology_breast": {
-        "title": "Oncology — Breast Imaging & Cytology",
+        "title": "🔬 Oncology — Breast Imaging & Cytology",
         "category": "Oncology",
         "description": "Real machine-learning model trained on the Breast Cancer Wisconsin (Diagnostic) dataset, using 10 tumor measurements from a biopsy/imaging report.",
         "engine": {
@@ -163,7 +163,7 @@ SPECIALTY_FIELDS = {
     # RULE — Cervical cancer risk factors (ACS/WHO recognized risk factors)
     # ======================================================================
     "oncology_cervical": {
-        "title": "Oncology — Gynecologic Screening",
+        "title": "🎗️ Oncology — Gynecologic Screening",
         "category": "Oncology",
         "description": "Evidence-based cervical cancer risk-factor scoring (ACS/WHO recognized risk factors). Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "cervical_cancer_risk"},
@@ -179,7 +179,7 @@ SPECIALTY_FIELDS = {
     # RULE — APRI score (AST-to-Platelet Ratio Index, Wai et al. 2003)
     # ======================================================================
     "hepatology": {
-        "title": "Hepatology & Liver Care",
+        "title": "🧪 Hepatology & Liver Care",
         "category": "Hepatic & Digestive",
         "description": "Evidence-based liver fibrosis risk scoring using the validated APRI index (AST-to-Platelet Ratio). Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "liver_disease_risk"},
@@ -195,7 +195,7 @@ SPECIALTY_FIELDS = {
     # RULE — GOLD criteria for airflow obstruction (COPD/asthma pattern)
     # ======================================================================
     "pulmonology": {
-        "title": "Pulmonology & Respiratory Care",
+        "title": "🫁 Pulmonology & Respiratory Care",
         "category": "Respiratory",
         "description": "Evidence-based airway obstruction staging using GOLD spirometry criteria. Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "copd_asthma_risk"},
@@ -211,7 +211,7 @@ SPECIALTY_FIELDS = {
     # RULE — CHA2DS2-VASc stroke risk score (real validated clinical tool)
     # ======================================================================
     "neurology_stroke": {
-        "title": "Neurology & Cerebrovascular Risk",
+        "title": "🧠 Neurology — Cerebrovascular Risk",
         "category": "Neurological",
         "description": "Evidence-based stroke risk stratification using the validated CHA₂DS₂-VASc score. Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "stroke_risk_chadsvasc"},
@@ -228,7 +228,7 @@ SPECIALTY_FIELDS = {
     # RULE — qSOFA (quick Sequential Organ Failure Assessment, Sepsis-3, 2016)
     # ======================================================================
     "infectious_disease": {
-        "title": "Infectious Disease & Critical Care",
+        "title": "🦠 Infectious Disease & Critical Care",
         "category": "Infectious & Critical Care",
         "description": "Evidence-based sepsis risk screening using the validated qSOFA score (Sepsis-3 criteria). Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "sepsis_risk_qsofa"},
@@ -242,7 +242,7 @@ SPECIALTY_FIELDS = {
     # RULE — Simplified 2010 ACR/EULAR rheumatoid arthritis classification
     # ======================================================================
     "rheumatology": {
-        "title": "Rheumatology & Autoimmune Care",
+        "title": "🔥 Rheumatology & Autoimmune Care",
         "category": "Musculoskeletal & Autoimmune",
         "description": "Evidence-based inflammatory arthritis risk scoring based on 2010 ACR/EULAR classification components. Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "rheumatoid_arthritis_risk"},
@@ -258,7 +258,7 @@ SPECIALTY_FIELDS = {
     # RULE — PHQ-9 depression screening (real validated 9-item instrument)
     # ======================================================================
     "psychiatry": {
-        "title": "Psychiatry & Behavioral Health",
+        "title": "💭 Psychiatry & Behavioral Health",
         "category": "Mental Health",
         "description": "PHQ-9, a real validated 9-item depression screening instrument used widely in primary care. Not a machine-learning model. Educational/screening use only — not a diagnosis.",
         "engine": {"type": "rule", "rule_fn": "depression_screen_phq9"},
@@ -279,7 +279,7 @@ SPECIALTY_FIELDS = {
     # RULE — Thyroid function classification using standard reference ranges
     # ======================================================================
     "endocrinology_thyroid": {
-        "title": "Endocrinology — Thyroid Care",
+        "title": "🦋 Endocrinology — Thyroid Care",
         "category": "Endocrine & Metabolic",
         "description": "Evidence-based thyroid function classification using standard TSH/Free T4 reference ranges. Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "thyroid_function_assessment"},
@@ -294,7 +294,7 @@ SPECIALTY_FIELDS = {
     # RULE — WHO anemia diagnostic criteria
     # ======================================================================
     "hematology": {
-        "title": "Hematology",
+        "title": "🩸 Hematology",
         "category": "Hematologic",
         "description": "Evidence-based anemia classification using WHO hemoglobin diagnostic thresholds. Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "anemia_classification_who"},
@@ -308,7 +308,7 @@ SPECIALTY_FIELDS = {
     # RULE — ABCDE criteria for melanoma risk (real dermatologic mnemonic)
     # ======================================================================
     "dermatology": {
-        "title": "Dermatology — Skin Lesion Screening",
+        "title": "🩹 Dermatology — Skin Lesion Screening",
         "category": "Dermatologic",
         "description": "Evidence-based melanoma risk screening using the validated ABCDE clinical criteria. Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "melanoma_risk_abcde"},
@@ -325,7 +325,7 @@ SPECIALTY_FIELDS = {
     # RULE — Simplified LUTS/BPH screening + PSA threshold
     # ======================================================================
     "urology": {
-        "title": "Urology & Genitourinary Health",
+        "title": "💧 Urology",
         "category": "Genitourinary",
         "description": "Evidence-based lower urinary tract symptom screening with standard PSA threshold flagging. Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "lower_urinary_tract_risk"},
@@ -340,7 +340,7 @@ SPECIALTY_FIELDS = {
     # RULE — Diabetic retinopathy risk factors (DCCT/UKPDS literature)
     # ======================================================================
     "ophthalmology": {
-        "title": "Ophthalmology — Diabetic Retinopathy",
+        "title": "👁️ Ophthalmology — Diabetic Retinopathy",
         "category": "Ophthalmic",
         "description": "Evidence-based diabetic retinopathy risk factors drawn from the DCCT/UKPDS landmark studies. Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "diabetic_retinopathy_risk"},
@@ -354,7 +354,7 @@ SPECIALTY_FIELDS = {
     # RULE — Simplified FRAX-like osteoporosis risk factors
     # ======================================================================
     "orthopedics": {
-        "title": "Orthopedics — Bone Health",
+        "title": "🦴 Orthopedics — Bone Health",
         "category": "Musculoskeletal & Autoimmune",
         "description": "Evidence-based osteoporotic fracture risk factors modeled on the FRAX clinical risk tool. Not a machine-learning model.",
         "engine": {"type": "rule", "rule_fn": "osteoporosis_risk_frax_like"},

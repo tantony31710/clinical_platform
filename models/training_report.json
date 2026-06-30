@@ -15,43 +15,43 @@
     "feature_importances": [
       {
         "feature": "Glucose",
-        "importance": 0.3229
+        "importance": 0.315
       },
       {
         "feature": "BMI",
-        "importance": 0.1876
+        "importance": 0.1891
       },
       {
         "feature": "Age",
-        "importance": 0.1417
+        "importance": 0.1448
       },
       {
         "feature": "Insulin",
-        "importance": 0.0882
+        "importance": 0.0982
       },
       {
         "feature": "DiabetesPedigreeFunction",
-        "importance": 0.0871
+        "importance": 0.0848
       },
       {
         "feature": "Pregnancies",
-        "importance": 0.0683
+        "importance": 0.0622
       },
       {
         "feature": "SkinThickness",
-        "importance": 0.0574
+        "importance": 0.061
       },
       {
         "feature": "BloodPressure",
-        "importance": 0.0467
+        "importance": 0.0448
       }
     ],
-    "held_out_test_accuracy_uncalibrated": 0.7208,
-    "held_out_test_accuracy_calibrated": 0.7532,
-    "5fold_cv_mean_accuracy": 0.767,
-    "5fold_cv_std": 0.0277,
-    "held_out_auc": 0.8176,
-    "held_out_brier_score": 0.167,
+    "held_out_test_accuracy_uncalibrated": 0.7468,
+    "held_out_test_accuracy_calibrated": 0.7468,
+    "5fold_cv_mean_accuracy": 0.7578,
+    "5fold_cv_std": 0.0383,
+    "held_out_auc": 0.8235,
+    "held_out_brier_score": 0.1647,
     "model_file": "diabetes_model.pkl"
   },
   "heart": {
@@ -73,55 +73,55 @@
     "feature_importances": [
       {
         "feature": "ST slope",
-        "importance": 0.2551
+        "importance": 0.2578
       },
       {
         "feature": "chest pain type",
-        "importance": 0.1763
+        "importance": 0.1784
       },
       {
         "feature": "exercise angina",
-        "importance": 0.1095
+        "importance": 0.1103
       },
       {
         "feature": "oldpeak",
-        "importance": 0.1054
+        "importance": 0.1042
       },
       {
         "feature": "max heart rate",
-        "importance": 0.0915
+        "importance": 0.0913
       },
       {
         "feature": "cholesterol",
-        "importance": 0.0827
-      },
-      {
-        "feature": "sex",
-        "importance": 0.0518
+        "importance": 0.077
       },
       {
         "feature": "age",
-        "importance": 0.0484
+        "importance": 0.052
+      },
+      {
+        "feature": "sex",
+        "importance": 0.0486
       },
       {
         "feature": "resting bp s",
-        "importance": 0.0448
+        "importance": 0.046
       },
       {
         "feature": "fasting blood sugar",
-        "importance": 0.0183
+        "importance": 0.0177
       },
       {
         "feature": "resting ecg",
-        "importance": 0.0161
+        "importance": 0.0168
       }
     ],
     "held_out_test_accuracy_uncalibrated": 0.8866,
     "held_out_test_accuracy_calibrated": 0.8908,
-    "5fold_cv_mean_accuracy": 0.8765,
-    "5fold_cv_std": 0.0345,
-    "held_out_auc": 0.9547,
-    "held_out_brier_score": 0.0814,
+    "5fold_cv_mean_accuracy": 0.8815,
+    "5fold_cv_std": 0.0369,
+    "held_out_auc": 0.9506,
+    "held_out_brier_score": 0.083,
     "model_file": "heart_model.pkl"
   },
   "kidney": {
@@ -143,55 +143,55 @@
     "feature_importances": [
       {
         "feature": "Albumin",
-        "importance": 0.2657
-      },
-      {
-        "feature": "Serum Creatinine",
-        "importance": 0.221
+        "importance": 0.2442
       },
       {
         "feature": "Hemoglobin",
-        "importance": 0.2167
+        "importance": 0.2379
+      },
+      {
+        "feature": "Serum Creatinine",
+        "importance": 0.2153
       },
       {
         "feature": "Specific Gravity",
-        "importance": 0.1177
+        "importance": 0.112
       },
       {
         "feature": "Blood Urea",
-        "importance": 0.07
+        "importance": 0.0731
       },
       {
         "feature": "Hypertension",
-        "importance": 0.0642
+        "importance": 0.0688
       },
       {
         "feature": "Diabetes Mellitus",
-        "importance": 0.0273
+        "importance": 0.0287
       },
       {
         "feature": "Blood Glucose Random",
-        "importance": 0.0105
-      },
-      {
-        "feature": "Age",
-        "importance": 0.003
+        "importance": 0.0175
       },
       {
         "feature": "Sugar",
-        "importance": 0.002
+        "importance": 0.0012
+      },
+      {
+        "feature": "Age",
+        "importance": 0.0007
       },
       {
         "feature": "Blood Pressure",
-        "importance": 0.0018
+        "importance": 0.0004
       }
     ],
     "held_out_test_accuracy_uncalibrated": 0.9688,
     "held_out_test_accuracy_calibrated": 0.9688,
-    "5fold_cv_mean_accuracy": 1.0,
-    "5fold_cv_std": 0.0,
+    "5fold_cv_mean_accuracy": 0.9938,
+    "5fold_cv_std": 0.0125,
     "held_out_auc": 1.0,
-    "held_out_brier_score": 0.0152,
+    "held_out_brier_score": 0.0145,
     "model_file": "kidney_model.pkl"
   },
   "breast_cancer": {

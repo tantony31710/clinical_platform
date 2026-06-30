@@ -36,21 +36,18 @@ def fetch_feature(profile, key, specialty_id):
         return 0.0
 
 
-def compile_comprehensive_diagnostics(profile, ml_engines, specialty_id_filter=None):
+def compile_comprehensive_diagnostics(profile, ml_engines):
     """
     Runs every registered specialty's engine against the current patient
-    profile, or just a single specialty if specialty_id_filter is provided.
+    profile. Adding a new specialty to config/specialties.py (ML or rule)
+    requires zero changes here.
 
     ml_engines: dict {specialty_id: MLModelEngine} for every "ml"-type specialty.
-    specialty_id_filter: Optional string. If provided, only this specialty is run.
     Returns: dict {specialty_id: {status, verdict, confidence, engine_type}}
     """
     results = {}
-    specialties_to_run = {specialty_id_filter: SPECIALTY_FIELDS[specialty_id_filter]} \
-        if specialty_id_filter and specialty_id_filter in SPECIALTY_FIELDS \
-        else SPECIALTY_FIELDS
 
-    for specialty_id, spec in specialties_to_run.items():
+    for specialty_id, spec in SPECIALTY_FIELDS.items():
         engine_cfg = spec["engine"]
         engine_type = engine_cfg["type"]
 

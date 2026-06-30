@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧠 Clinical Diagnostic Dashboard</title>
+<style>
+    :root {
+        --bg-main:#060913; --bg-card:#0f111e; --bg-panel:#0b0d18; --bg-input:#121524;
+        --accent-blue:#3b82f6; --accent-blue-hover:#2563eb; --accent-purple:#a855f7;
+        --accent-green:#10b981; --accent-amber:#f59e0b; --accent-red:#ef4444; --accent-gray:#6b7280;
+        --border-color:#1e293b; --text-muted:#4b5563; --text-silver:#94a3b8; --text-light:#e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body { font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif; background:var(--bg-main); color:var(--text-light); margin:0; padding:24px; }
+    .shell { max-width: 1280px; margin: 0 auto; display:flex; flex-direction:column; gap:16px; }
+
+    .header-panel { background:linear-gradient(145deg,var(--bg-card),#080912); border:1px solid var(--border-color); padding:22px 26px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.6); }
+    .header-panel h2 { margin:0; color:var(--accent-blue); font-size:1.5rem; }
+    .header-panel .sub { margin:6px 0 0 0; opacity:0.75; font-size:0.9rem; }
+    .nav-link { font-size:0.78rem; color:var(--text-silver); text-decoration:none; border:1px solid var(--border-color); padding:5px 10px; border-radius:6px; }
+    .nav-link:hover { color:#fff; border-color: var(--accent-blue); }
+    .legend { display:flex; gap:16px; margin-top:10px; font-size:0.76rem; color:var(--text-silver); flex-wrap:wrap; }
+    .legend .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; }
+    .disclaimer { margin-top:12px; padding:10px 14px; border:1px solid #422006; background:rgba(245,158,11,0.06); border-radius:8px; font-size:0.8rem; color:#fbbf24; }
+
+    .layout { display:grid; grid-template-columns: 290px 1fr; gap:16px; align-items:start; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    .sidebar { background:var(--bg-panel); border:1px solid var(--border-color); border-radius:12px; padding:14px; max-height: 80vh; overflow-y:auto; }
+    .cat-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin:12px 4px 6px 4px; }
+    .cat-label:first-child { margin-top:2px; }
+    .tab-btn { width:100%; text-align:left; background:#0b0c16; color:var(--text-silver); border:1px solid var(--border-color); padding:9px 10px; border-radius:8px; cursor:pointer; font-size:0.82rem; font-weight:600; margin-bottom:5px; display:flex; align-items:center; gap:7px; }
+    .tab-btn:hover { background:#141727; color:#fff; }
+    .tab-btn.active { background:var(--accent-blue); color:#fff; border-color:var(--accent-blue); }
+    .engine-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+    .engine-dot.ml { background:var(--accent-blue); }
+    .engine-dot.rule { background:var(--accent-purple); }
+    .tab-btn.active .engine-dot { background:#fff; }
+
+    .main-col { display:flex; flex-direction:column; gap:16px; }
+
+    .panel { background:var(--bg-panel); border:1px solid var(--border-color); border-radius:12px; padding:20px; }
+    .panel h3 { margin:0 0 4px 0; font-size:1.05rem; color:var(--text-light); }
+    .panel .desc { font-size:0.82rem; color:var(--text-silver); margin-bottom:14px; }
+
+    .field-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap:12px; }
+    .field { display:flex; flex-direction:column; gap:5px; }
+    .field label { font-size:0.78rem; color:var(--text-silver); line-height:1.3; }
+    .field input, .field select { background:var(--bg-input); border:1px solid #2e3b52; padding:10px; border-radius:7px; color:#fff; font-size:0.9rem; outline:none; }
+    .field input:focus, .field select:focus { border-color:var(--accent-blue); }
+    .field.has-error input, .field.has-error select { border-color: var(--accent-red); }
+    .field .err-msg { font-size:0.72rem; color: var(--accent-red); }
+
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+    button.primary-btn { background:var(--accent-blue); color:#fff; border:none; padding:11px 20px; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.88rem; }
+    button.primary-btn:hover { background:var(--accent-blue-hover); }
+    button.secondary-btn { background:#161a2c; color:var(--text-silver); border:1px solid var(--border-color); padding:11px 20px; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.88rem; }
+    button.secondary-btn:hover { color:#fff; border-color:var(--accent-purple); }
+
+    .result-card { border-radius:10px; padding:16px 18px; margin-top:6px; border:1px solid var(--border-color); background:rgba(255,255,255,0.015); }
+    .result-card .top-row { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+    .result-card h4 { margin:0; font-size:1rem; }
+    .badge { font-size:0.68rem; font-weight:bold; padding:2px 8px; border-radius:4px; color:#fff; }
+    .verdict-box { font-family:monospace; font-size:0.88rem; background:#111422; padding:10px; border-radius:6px; margin-top:10px; line-height:1.5; }
+    .conf-row { font-size:0.82rem; color:var(--text-silver); margin-top:10px; }
+    .conf-bar-track { background:#1e293b; height:6px; border-radius:3px; overflow:hidden; margin-top:6px; }
+    .conf-bar-fill { height:100%; }
+    .drivers { font-size:0.76rem; color:var(--text-silver); margin-top:10px; }
+    .drivers span.chip { display:inline-block; background:#161a2c; border:1px solid var(--border-color); padding:2px 8px; border-radius:10px; margin:3px 4px 0 0; }
+
+    .panel-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap:12px; }
+
+    #fullPanelArea { display:none; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+    <div class="header-panel">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h2>🧠 Clinical Diagnostic Dashboard</h2>
+                <p class="sub">{{ tracks|length }} specialty modules — structured intake, calibrated ML predictions, validated clinical scoring tools.</p>
+            </div>
+            <a class="nav-link" href="/classic-chat">↩ Open legacy chat interface</a>
+        </div>
+        <div class="legend">
+            <span><span class="dot" style="background:var(--accent-blue);"></span>ML Model (calibrated, trained on real data)</span>
+            <span><span class="dot" style="background:var(--accent-purple);"></span>Clinical Scoring Engine (validated rule-based tool)</span>
+            <span><span class="dot" style="background:var(--accent-amber);"></span>Indeterminate band → flagged for clinician review</span>
+        </div>
+        <div class="disclaimer">⚠️ Educational / demonstration platform. Not an FDA-cleared or CE-marked medical device, not validated for clinical use, not a substitute for a qualified clinician. See ROADMAP.md for what real deployment would require.</div>
+    </div>
+
+    <div class="layout">
+        <div class="sidebar">
+            {% for category, items in categories.items() %}
+                <div class="cat-label">{{ category }}</div>
+                {% for id, track in items %}
+                    <button class="tab-btn" id="tab-{{id}}" onclick="selectSpecialty('{{id}}')">
+                        <span class="engine-dot {{ track.engine.type }}"></span>{{ track.title }}
+                    </button>
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <div class="main-col">
+            <div class="panel">
+                <h3>Patient Baseline</h3>
+                <div class="desc">Shared across every module — enter once, reused everywhere automatically.</div>
+                <div class="field-grid" id="baselineFields"></div>
+            </div>
+
+            <div class="panel">
+                <h3 id="specialtyTitle">Select a specialty</h3>
+                <div class="desc" id="specialtyDesc"></div>
+                <div class="field-grid" id="specialtyFields"></div>
+                <div class="actions">
+                    <button class="primary-btn" onclick="runSingleAssessment()">Run This Assessment</button>
+                    <button class="secondary-btn" onclick="runFullPanel()">Run Full 17-Specialty Panel</button>
+                </div>
+                <div id="singleResultArea"></div>
+            </div>
+
+            <div class="panel" id="fullPanelArea">
+                <h3>Full Panel Results</h3>
+                <div class="desc">Computed from every value entered so far across all modules. Blank fields fall back to clinical defaults.</div>
+                <div class="panel-grid" id="fullPanelGrid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const GLOBAL_FIELDS = {{ global_fields|tojson }};
+const TRACKS = {{ tracks|tojson }};
+const patientProfile = {};
+let activeSpecialty = null;
+
+function fieldInputHTML(key, rules, value) {
+    const val = (value !== undefined && value !== null) ? value : "";
+    if (rules.type === "choice") {
+        const opts = rules.choices.map(c => `<option value="${c}" ${val===c?"selected":""}>${c}</option>`).join("");
+        return `<select id="f_${key}" onchange="onFieldChange('${key}')"><option value="">-- select --</option>${opts}</select>`;
+    }
+    const minAttr = rules.min_allowed !== undefined ? `min="${rules.min_allowed}"` : "";
+    const maxAttr = rules.max_allowed !== undefined ? `max="${rules.max_allowed}"` : "";
+    return `<input type="number" step="any" id="f_${key}" ${minAttr} ${maxAttr} placeholder="default: ${rules.default}" value="${val}" oninput="onFieldChange('${key}')">`;
+}
+
+function renderBaseline() {
+    const container = document.getElementById("baselineFields");
+    container.innerHTML = Object.entries(GLOBAL_FIELDS).map(([key, rules]) => `
+        <div class="field" id="field-${key}">
+            <label>${rules.prompt}</label>
+            ${fieldInputHTML(key, rules, patientProfile[key])}
+        </div>
+    `).join("");
+}
+
+function renderSpecialtyForm(id) {
+    const track = TRACKS[id];
+    document.getElementById("specialtyTitle").innerText = track.title;
+    document.getElementById("specialtyDesc").innerText = track.description;
+    const container = document.getElementById("specialtyFields");
+    container.innerHTML = Object.entries(track.registry).map(([key, rules]) => `
+        <div class="field" id="field-${key}">
+            <label>${rules.prompt}</label>
+            ${fieldInputHTML(key, rules, patientProfile[key])}
+        </div>
+    `).join("");
+    document.getElementById("singleResultArea").innerHTML = "";
+}
+
+function onFieldChange(key) {
+    const el = document.getElementById("f_" + key);
+    if (el) patientProfile[key] = el.value;
+}
+
+function selectSpecialty(id) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("tab-" + id).classList.add("active");
+    activeSpecialty = id;
+    renderSpecialtyForm(id);
+    document.getElementById("fullPanelArea").style.display = "none";
+}
+
+function statusColor(status) {
+    if (status === "HIGH_RISK") return "var(--accent-red)";
+    if (status === "ELEVATED_RISK") return "var(--accent-amber)";
+    if (status === "INDETERMINATE") return "var(--accent-amber)";
+    if (status === "NORMAL") return "var(--accent-green)";
+    return "var(--accent-gray)";
+}
+
+function renderResultCard(id, result) {
+    const color = statusColor(result.status);
+    const engineBadge = result.engine_type === "ml"
+        ? `<span class="badge" style="background:var(--accent-blue);">🤖 ML MODEL</span>`
+        : `<span class="badge" style="background:var(--accent-purple);">📋 SCORING ENGINE</span>`;
+    const confLabel = result.engine_type === "ml" ? "Calibrated Model Confidence" : "Clinical Criteria Match Score";
+    const drivers = (result.top_drivers && result.top_drivers.length)
+        ? `<div class="drivers">Key model drivers (population-level, not patient-specific): ${result.top_drivers.map(d => `<span class="chip">${d.feature} (${Math.round(d.importance*100)}%)</span>`).join("")}</div>`
+        : "";
+    return `
+        <div class="result-card" style="border-color:${color};">
+            <div class="top-row">
+                <h4 style="color:${color};">${TRACKS[id] ? TRACKS[id].title : id} ${engineBadge}</h4>
+                <span class="badge" style="background:${color}; color:#000;">${result.status || "UNKNOWN"}</span>
+            </div>
+            <div class="verdict-box" style="border-left:3px solid ${color};">${result.verdict || "No verdict."}</div>
+            <div class="conf-row"><strong>${confLabel}:</strong> ${(result.confidence||0).toFixed(2)}%</div>
+            <div class="conf-bar-track"><div class="conf-bar-fill" style="background:${color}; width:${result.confidence||0}%;"></div></div>
+            ${drivers}
+        </div>`;
+}
+
+async function callAssess(trackId) {
+    const r = await fetch("/api/assess", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({trackId: trackId, profile: patientProfile})
+    });
+    const payload = await r.json();
+    if (!r.ok) {
+        return {error: payload};
+    }
+    return payload;
+}
+
+function clearFieldErrors() {
+    document.querySelectorAll(".field").forEach(f => {
+        f.classList.remove("has-error");
+        const e = f.querySelector(".err-msg");
+        if (e) e.remove();
+    });
+}
+
+function showFieldErrors(fieldErrors) {
+    clearFieldErrors();
+    Object.entries(fieldErrors).forEach(([key, msg]) => {
+        const f = document.getElementById("field-" + key);
+        if (f) {
+            f.classList.add("has-error");
+            const span = document.createElement("div");
+            span.className = "err-msg";
+            span.innerText = msg;
+            f.appendChild(span);
+        }
+    });
+}
+
+async function runSingleAssessment() {
+    if (!activeSpecialty) return;
+    clearFieldErrors();
+    const payload = await callAssess(activeSpecialty);
+    if (payload.error) {
+        if (payload.error.field_errors) showFieldErrors(payload.error.field_errors);
+        document.getElementById("singleResultArea").innerHTML = `<div class="result-card" style="border-color:var(--accent-red);">❌ Validation failed — check highlighted fields.</div>`;
+        return;
+    }
+    const result = payload.results[activeSpecialty];
+    document.getElementById("singleResultArea").innerHTML = renderResultCard(activeSpecialty, result);
+}
+
+async function runFullPanel() {
+    clearFieldErrors();
+    const payload = await callAssess("ALL");
+    const area = document.getElementById("fullPanelArea");
+    area.style.display = "block";
+    if (payload.error) {
+        if (payload.error.field_errors) showFieldErrors(payload.error.field_errors);
+        document.getElementById("fullPanelGrid").innerHTML = `<div class="result-card" style="border-color:var(--accent-red);">❌ Validation failed — check highlighted fields.</div>`;
+        return;
+    }
+    const grid = document.getElementById("fullPanelGrid");
+    grid.innerHTML = Object.entries(payload.results).map(([id, result]) => renderResultCard(id, result)).join("");
+    area.scrollIntoView({behavior:"smooth"});
+}
+
+// init
+renderBaseline();
+const firstId = Object.keys(TRACKS)[0];
+selectSpecialty(firstId);
+</script>
+</body>
+</html>

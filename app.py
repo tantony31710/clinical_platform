@@ -1,59 +1,70 @@
 # app.py
-from flask import Flask, request, jsonify, render_template, Response
-import io
-import csv
+from flask import Flask, request, jsonify, render_template
 import os
-import json
 
 from config.specialties import GLOBAL_BASELINE_FEATURES, SPECIALTY_FIELDS
+from config.advice import SPECIALTY_ADVICE
+from core.session import ClinicalSession
 from core.interceptors import MetricSanitizer
 from core.exceptions import PhysiologicalBoundsViolation
-from engines.model_engine import MLModelEngine 
-from core.db import init_db, save_assessment, get_patient_history, DatabaseConnection
+from engines.model_engine import MLModelEngine
 from engines.orchestrator import compile_comprehensive_diagnostics
 
 app = Flask(__name__)
-
+active_cases = {}
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-print(" MOUNTING MULTI-SPECIALTY CLINICAL DIAGNOSTIC PLATFORM")
-init_db()
+print("\n=======================================================")
+print("🌐 MOUNTING MULTI-SPECIALTY CLINICAL DIAGNOSTIC PLATFORM")
 print("=======================================================")
 
-# Lazily build one MLModelEngine per "ml"-type specialty. Adding a new ML
-# specialty to config/specialties.py is picked up automatically here --
-# nothing in this loop is disease-specific.
 ml_engines = {}
 for specialty_id, spec in SPECIALTY_FIELDS.items():
     engine_cfg = spec["engine"]
     if engine_cfg["type"] != "ml":
         continue
     model_path = os.path.join(BASE_DIR, engine_cfg["model_file"])
-    expected_dim = len(engine_cfg["feature_order"])
-    engine = MLModelEngine(model_path, expected_dim, specialty_id)
+    engine = MLModelEngine(model_path, len(engine_cfg["feature_order"]), specialty_id)
     ml_engines[specialty_id] = engine
     status = "✅ LOADED" if engine.is_available() else f"⚠️  UNAVAILABLE ({engine.load_error})"
     print(f"  [{specialty_id}] {spec['title']} -> {engine_cfg['model_file']} : {status}")
 
 print(f"\n  {len(ml_engines)} ML model(s) registered, "
-      f"{len([s for s in SPECIALTY_FIELDS.values() if s['engine']['type'] == 'rule'])} rule engine(s) registered, "
+      f"{len([s for s in SPECIALTY_FIELDS.values() if s['engine']['type']=='rule'])} rule engine(s) registered, "
       f"{len(SPECIALTY_FIELDS)} total specialty tabs.\n")
 
 
+# ── Template context helper ──────────────────────────────────────────────────
+def _build_context():
+    categories = {}
+    for sid, spec in SPECIALTY_FIELDS.items():
+        cat = spec.get("category", "Other")
+        categories.setdefault(cat, []).append((sid, spec))
+    return dict(
+        tracks=SPECIALTY_FIELDS,
+        categories=categories,
+        global_fields=GLOBAL_BASELINE_FEATURES,
+        advice=SPECIALTY_ADVICE,
+    )
+
+
+# ── Routes ───────────────────────────────────────────────────────────────────
+@app.route('/')
 @app.route('/dashboard')
 def dashboard():
-    categories = {}
-    for specialty_id, spec in SPECIALTY_FIELDS.items():
-        cat = spec.get("category", "Other")
-        categories.setdefault(cat, []).append((specialty_id, spec))
-    return render_template('dashboard.html', active_page='dashboard', tracks=SPECIALTY_FIELDS,
-                           categories=categories, global_fields=GLOBAL_BASELINE_FEATURES)
+    return render_template('dashboard.html', **_build_context())
 
 
-def _find_field_rules(key, track_id):
-    """A submitted field key might be global, or belong to the active specialty,
-    or be a reused key from a different specialty (cross-tab reuse, e.g. Hemoglobin).
-    Search in that priority order."""
+@app.route('/classic-chat')
+def classic_chat():
+    ctx = _build_context()
+    first_key = list(GLOBAL_BASELINE_FEATURES.keys())[0]
+    ctx['first_prompt'] = GLOBAL_BASELINE_FEATURES[first_key]["prompt"]
+    return render_template('index.html', **ctx)
+
+
+# ── Dashboard API ─────────────────────────────────────────────────────────────
+def _find_rules(key, track_id):
     if key in GLOBAL_BASELINE_FEATURES:
         return GLOBAL_BASELINE_FEATURES[key]
     if track_id in SPECIALTY_FIELDS and key in SPECIALTY_FIELDS[track_id]["registry"]:
@@ -66,12 +77,6 @@ def _find_field_rules(key, track_id):
 
 @app.route('/api/assess', methods=['POST'])
 def api_assess():
-    """
-    Form-based assessment endpoint for the dashboard UI. Accepts the full
-    set of values the clinician has entered (profile), validates each
-    non-empty one, and runs either a single specialty's engine or the full
-    17-specialty panel.
-    """
     data = request.get_json() or {}
     track_id = data.get('trackId', 'ALL')
     raw_profile = data.get('profile', {})
@@ -85,7 +90,7 @@ def api_assess():
     for key, value in raw_profile.items():
         if value is None or str(value).strip() == "":
             continue
-        rules = _find_field_rules(key, track_id)
+        rules = _find_rules(key, track_id)
         if rules is None:
             continue
         try:
@@ -98,127 +103,132 @@ def api_assess():
     if field_errors:
         return jsonify({'error': 'validation_failed', 'field_errors': field_errors}), 400
 
-    # If a specific track is requested, run only that one. Otherwise, run all.
-    specialty_to_run = track_id if track_id != 'ALL' else None
-    diagnostics_manifest = compile_comprehensive_diagnostics(sanitized_profile, ml_engines, specialty_to_run)
-
-    # For a full-panel run, persist the results to the patient's history
-    # We'll use a hardcoded patient_id for this demonstration.
-    if track_id == 'ALL':
-        patient_id = "patient_001" # In a real app, this would come from a session/login
-        save_assessment(patient_id, sanitized_profile, diagnostics_manifest)
+    results = compile_comprehensive_diagnostics(sanitized_profile, ml_engines)
 
     if track_id == 'ALL':
-        return jsonify({'results': diagnostics_manifest, 'profile_used': sanitized_profile})
+        return jsonify({'results': results, 'profile_used': sanitized_profile})
+    return jsonify({'results': {track_id: results.get(track_id, {})}, 'profile_used': sanitized_profile})
+
+
+# ── Classic chat API ──────────────────────────────────────────────────────────
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.get_json() or {}
+    user_id  = data.get('userId')
+    track_id = data.get('trackId')
+    user_msg = str(data.get('message', '')).strip()
+
+    if not user_id or track_id not in SPECIALTY_FIELDS:
+        return jsonify({'reply': "❌ Invalid session or unrecognized specialty tab."}), 400
+
+    if user_id not in active_cases:
+        active_cases[user_id] = ClinicalSession(user_id)
+
+    session = active_cases[user_id]
+    scope, current_key = session.determine_next_node(track_id)
+
+    if current_key and user_msg:
+        rules = (GLOBAL_BASELINE_FEATURES[current_key] if scope == "global"
+                 else SPECIALTY_FIELDS[track_id]["registry"][current_key])
+        try:
+            session.patient_profile[current_key] = MetricSanitizer.process_and_validate(current_key, user_msg, rules)
+        except PhysiologicalBoundsViolation as e:
+            return jsonify({'reply': f"❌ <strong>Out of Range:</strong> {e} <br><br>💡 Please provide a clinically plausible value."})
+        except ValueError as e:
+            return jsonify({'reply': f"⚠️ <strong>Invalid Input:</strong> {e}"})
+        except Exception as e:
+            return jsonify({'reply': f"⚠️ <strong>Input Rejected:</strong> {e}"})
+
+        if scope == "global":
+            session.global_step += 1
+        else:
+            session.fields_state[track_id]["step"] += 1
+
+    next_scope, next_key = session.determine_next_node(track_id)
+    feedback_bubble = ""
+
+    if scope == "global" and session.global_step > 0:
+        prev_key   = session.global_queue[session.global_step - 1]
+        prev_rules = GLOBAL_BASELINE_FEATURES[prev_key]
+        if "max_optimal" in prev_rules and isinstance(session.patient_profile.get(prev_key), (int, float)) \
+                and session.patient_profile[prev_key] > prev_rules["max_optimal"]:
+            tip = f' <br>💡 <em>{prev_rules["tip"]}</em>' if "tip" in prev_rules else ""
+            feedback_bubble = f"<div style='color:#f59e0b;border:1px solid #f59e0b;padding:10px;border-radius:6px;margin-bottom:10px;font-size:.88rem;'>⚠️ <strong>Elevated ({prev_key}):</strong> Above optimal range.{tip}</div>"
+    elif scope == "specialty" and session.fields_state[track_id]["step"] > 0:
+        local_state = session.fields_state[track_id]
+        prev_key    = local_state["queue"][local_state["step"] - 1]
+        prev_rules  = SPECIALTY_FIELDS[track_id]["registry"].get(prev_key, {})
+        if "max_optimal" in prev_rules and isinstance(session.patient_profile.get(prev_key), (int, float)) \
+                and session.patient_profile[prev_key] > prev_rules["max_optimal"]:
+            tip = f' <br>💡 <em>{prev_rules["tip"]}</em>' if "tip" in prev_rules else ""
+            feedback_bubble = f"<div style='color:#f59e0b;border:1px solid #f59e0b;padding:10px;border-radius:6px;margin-bottom:10px;font-size:.88rem;'>⚠️ <strong>Elevated ({prev_key}):</strong> Above optimal range.{tip}</div>"
+
+    if next_key:
+        rules = (GLOBAL_BASELINE_FEATURES[next_key] if next_scope == "global"
+                 else SPECIALTY_FIELDS[track_id]["registry"][next_key])
+        badge = ("<span style='color:#22d3ee;background:rgba(34,211,238,.1);padding:2px 6px;border-radius:4px;font-size:.75rem;font-weight:bold;margin-right:5px;'>SHARED BASELINE</span>"
+                 if next_scope == "global" else
+                 "<span style='color:#a78bfa;background:rgba(167,139,250,.1);padding:2px 6px;border-radius:4px;font-size:.75rem;font-weight:bold;margin-right:5px;'>SPECIALTY FIELD</span>")
+        return jsonify({'reply': f"{feedback_bubble}{badge} <strong>{rules['prompt']}</strong>"})
+
     else:
-        return jsonify({'results': diagnostics_manifest, 'profile_used': sanitized_profile})
+        all_results = compile_comprehensive_diagnostics(session.patient_profile, ml_engines)
+        title  = SPECIALTY_FIELDS[track_id]["title"]
+        result = all_results.get(track_id, {})
+        verdict   = result.get("verdict", "Insufficient inputs.")
+        conf      = result.get("confidence", 0.0)
+        status    = result.get("status", "UNKNOWN")
+        eng_type  = result.get("engine_type", "unknown")
+        top_drivers = result.get("top_drivers", [])
 
+        advice_list = SPECIALTY_ADVICE.get(track_id, {}).get(status, [])
 
-@app.route('/api/history', methods=['GET'])
-def api_history():
-    """
-    New endpoint to fetch historical assessment data for trend analysis.
-    """
-    patient_id = request.args.get('patientId', "patient_001") # Demo default
-    history = get_patient_history(patient_id)
-    return jsonify(history)
+        color = "#22d3ee" if status == "NORMAL" else ("#f59e0b" if status == "ELEVATED_RISK" else "#ef4444")
+        if status == "INDETERMINATE":
+            color = "#fbbf24"
 
-@app.route('/history')
-def history_page():
-    """
-    New page to display a patient's full assessment history from the database.
-    """
-    patient_id = request.args.get('patientId', "patient_001") # Demo default
-    history_data = get_patient_history(patient_id)
-    # The history is ordered oldest to newest. For display, newest first is better.
-    history_data.reverse()
-    return render_template('history.html', active_page='history', history=history_data, patient_id=patient_id)
+        eng_badge = (
+            "<span style='font-size:.7rem;font-weight:bold;background:#22d3ee;color:#001f25;padding:2px 8px;border-radius:4px;margin-left:8px;'>🤖 ML MODEL</span>"
+            if eng_type == "ml" else
+            "<span style='font-size:.7rem;font-weight:bold;background:#a78bfa;color:#fff;padding:2px 8px;border-radius:4px;margin-left:8px;'>📋 SCORING ENGINE</span>"
+        )
+        conf_label = "Model Prediction Confidence" if eng_type == "ml" else "Clinical Criteria Score"
 
-@app.route('/performance')
-def performance():
-    """
-    New page to display the model training and performance report.
-    """
-    report_path = os.path.join(BASE_DIR, 'models', 'training_report.json')
-    try:
-        with open(report_path, 'r') as f:
-            performance_data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"Could not load performance report: {e}")
-        performance_data = {}
+        drivers_html = ""
+        if top_drivers:
+            chips = " ".join(f"<span style='display:inline-block;background:#1e293b;border:1px solid #334155;border-radius:12px;padding:2px 8px;font-size:.75rem;margin:2px 3px 0 0;'>{d['feature']} ({round(d['importance']*100)}%)</span>" for d in top_drivers)
+            drivers_html = f"<p style='margin:10px 0 4px;font-size:.8rem;color:#94a3b8;'>Key drivers: {chips}</p>"
 
-    # Separate environment from models for cleaner presentation
-    environment = performance_data.pop('_environment', {})
-    # The rest are the model reports
-    models = performance_data
+        advice_html = ""
+        if advice_list:
+            items = "".join(f"<li style='margin:5px 0;font-size:.85rem;'>{a}</li>" for a in advice_list)
+            advice_html = f"<div style='margin-top:14px;padding:12px;background:rgba(34,211,238,.04);border:1px solid rgba(34,211,238,.2);border-radius:8px;'><div style='font-size:.75rem;font-weight:bold;text-transform:uppercase;letter-spacing:.05em;color:#22d3ee;margin-bottom:8px;'>💡 Clinical Guidance</div><ul style='margin:0;padding-left:18px;color:#cbd5e1;'>{items}</ul></div>"
 
-    return render_template('performance.html', active_page='performance', models=models, environment=environment)
-
-@app.route('/api/health')
-def api_health():
-    """A simple endpoint to check if the server is up and the database is connected."""
-    db_status = "disconnected"
-    db_error = "No error"
-    try:
-        # This will use the DatabaseConnection context manager to test a connection
-        with DatabaseConnection() as conn:
-            with conn.cursor() as cursor:
-                # Execute a simple, fast query
-                cursor.execute("SELECT 1")
-                cursor.fetchone()
-        db_status = "connected"
-        return jsonify({"server_status": "ok", "database_status": db_status})
-    except Exception as e:
-        db_error = str(e)
-        return jsonify({"server_status": "ok", "database_status": db_status, "error": db_error, "troubleshooting": "Check Vercel environment variables for DATABASE_URL and Supabase network restrictions (firewall)."}), 500
-
-@app.route('/api/export/csv', methods=['GET'])
-def api_export_csv():
-    """
-    New endpoint to export a patient's full assessment history as a CSV file.
-    This is ideal for data scientists and researchers.
-    """
-    patient_id = request.args.get('patientId', "patient_001") # Demo default
-    history = get_patient_history(patient_id)
-
-    if not history:
-        return "No history found for this patient.", 404
-
-    # Dynamically generate headers from all keys present in the historical data
-    profile_keys = set()
-    result_keys = set()
-    for assessment in history:
-        profile_keys.update(assessment['profile'].keys())
-        for specialty, res in assessment['results'].items():
-            for key in res.keys():
-                result_keys.add(f"{specialty}_{key}")
-
-    # Sort for consistent column order
-    fieldnames = ['timestamp', 'patient_id'] + sorted(list(profile_keys)) + sorted(list(result_keys))
-
-    output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=fieldnames)
-    writer.writeheader()
-
-    for assessment in history:
-        row = {'patient_id': patient_id, 'timestamp': assessment['timestamp']}
-        # Add profile data
-        row.update(assessment['profile'])
-        # Flatten and add results data
-        for specialty, res in assessment['results'].items():
-            for key, value in res.items():
-                row[f"{specialty}_{key}"] = value
-        writer.writerow(row)
-
-    return Response(
-        output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-disposition": f"attachment; filename=patient_{patient_id}_history.csv"}
-    )
-
-@app.route('/')
-def index():
-    return dashboard()
+        markup = f"""
+        {feedback_bubble}
+        <div style='border:1px solid {color};padding:20px;border-radius:10px;background:rgba(0,0,0,.2);'>
+          <div style='display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;'>
+            <h4 style='margin:0;color:{color};font-size:1.05rem;'>📋 {title}{eng_badge}</h4>
+            <span style='font-size:.7rem;font-weight:bold;background:{color};color:#000;padding:2px 8px;border-radius:4px;'>STATUS: {status}</span>
+          </div>
+          <hr style='border:0;border-top:1px solid #1e293b;margin:12px 0;'/>
+          <p style='margin:8px 0;'><strong>Verdict:</strong><br>
+            <span style='color:#fff;font-family:monospace;display:block;margin-top:5px;background:#0c1324;padding:10px;border-radius:6px;border-left:3px solid {color};'>{verdict}</span>
+          </p>
+          <p style='margin:12px 0 4px;font-size:.85rem;color:#94a3b8;'><strong>{conf_label}:</strong> {conf:.1f}%</p>
+          <div style='background:#1e293b;height:5px;border-radius:3px;overflow:hidden;margin-bottom:10px;'>
+            <div style='background:{color};width:{conf}%;height:100%;transition:width .5s;'></div>
+          </div>
+          {drivers_html}
+          {advice_html}
+          <hr style='border:0;border-top:1px solid #1e293b;margin:14px 0 10px;'/>
+          <button style='background:#111827;border:1px solid #334155;color:#94a3b8;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;' onclick="toggleGlobalDataDump(this)">Inspect Shared Patient Profile</button>
+          <div class="data-dump" style="display:none;margin-top:10px;background:#000;padding:12px;border-radius:6px;font-family:monospace;font-size:.82rem;color:#34d399;max-height:140px;overflow-y:auto;border:1px solid #1e293b;">
+            <strong>Shared patient profile (reused across all tabs):</strong><br><br>{str(session.patient_profile)}
+          </div>
+        </div>
+        """
+        return jsonify({'reply': markup})
 
 
 if __name__ == '__main__':

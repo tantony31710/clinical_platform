@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 Multi-Specialty Clinical Diagnostic Console</title>
+    <style>
+        :root {
+            --bg-main: #060913;
+            --bg-card: #0f111e;
+            --bg-console: #090a12;
+            --bg-input: #121524;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-purple: #a855f7;
+            --accent-blue-hover: #2563eb;
+            --border-color: #1e293b;
+            --text-muted: #4b5563;
+            --text-silver: #94a3b8;
+            --text-light: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-light);
+            margin: 0;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .workspace-dashboard {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .header-panel {
+            background: linear-gradient(145deg, var(--bg-card), #080912);
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+
+        .header-panel h2 {
+            margin: 0;
+            color: var(--accent-blue);
+            font-size: 1.6rem;
+            letter-spacing: -0.5px;
+        }
+
+        .disclaimer {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border: 1px solid #422006;
+            background: rgba(245, 158, 11, 0.06);
+            border-radius: 8px;
+            font-size: 0.82rem;
+            color: #fbbf24;
+        }
+
+        .legend {
+            display: flex;
+            gap: 18px;
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: var(--text-silver);
+        }
+        .legend span.dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; }
+
+        .category-block { margin-top: 4px; }
+        .category-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            margin: 10px 2px 6px 2px;
+        }
+
+        .tabs-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .medical-tab {
+            background: #0b0c16;
+            color: var(--text-silver);
+            border: 1px solid var(--border-color);
+            padding: 9px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .medical-tab:hover { color: #ffffff; background: #141727; }
+
+        .medical-tab.active-channel {
+            background: var(--accent-blue);
+            color: #ffffff;
+            border-color: var(--accent-blue);
+            box-shadow: 0 2px 10px rgba(59,130,246,0.3);
+        }
+
+        .engine-dot { display:inline-block; width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+        .engine-dot.ml { background: var(--accent-blue); }
+        .engine-dot.rule { background: var(--accent-purple); }
+        .medical-tab.active-channel .engine-dot { background: #fff; }
+
+        .console-viewport {
+            background: var(--bg-console);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            height: 52vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.8);
+        }
+
+        .chat-logs-stream {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .bubble { max-width: 85%; padding: 15px 20px; border-radius: 10px; font-size: 0.98rem; line-height: 1.55; }
+        .bubble.bot { background: #121624; align-self: flex-start; border-left: 4px solid var(--accent-blue); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .bubble.user { background: var(--accent-blue-hover); align-self: flex-end; color: white; box-shadow: 0 4px 15px rgba(37,99,235,0.3); }
+
+        .transmission-tray { display: flex; gap: 15px; padding: 20px 30px; background: #04050a; border-top: 1px solid var(--border-color); }
+
+        input { flex: 1; background: var(--bg-input); border: 1px solid #2e3b52; padding: 16px; border-radius: 8px; color: white; font-size: 1rem; outline: none; transition: border-color 0.2s; }
+        input:focus { border-color: var(--accent-blue); }
+
+        button.send-btn { background: var(--accent-blue); color: white; border: none; padding: 0 30px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.98rem; transition: background 0.2s; }
+        button.send-btn:hover { background: var(--accent-blue-hover); }
+    </style>
+</head>
+<body>
+
+<div class="workspace-dashboard">
+    <div class="header-panel">
+        <h2>🧠 Multi-Specialty Clinical Diagnostic Console</h2>
+        <p style="margin: 6px 0 0 0; opacity: 0.7; font-size: 0.94rem;">{{ tracks|length }} medical specialty tabs — real trained ML models where real datasets are available, validated clinical scoring tools everywhere else.</p>
+        <div class="legend">
+            <span><span class="dot" style="background:var(--accent-blue);"></span>ML Model (real trained classifier)</span>
+            <span><span class="dot" style="background:var(--accent-purple);"></span>Clinical Scoring Engine (validated rule-based tool)</span>
+        </div>
+        <div class="disclaimer">⚠️ Educational / demonstration platform only. Not a medical device and not a substitute for professional diagnosis. Always consult a qualified clinician.</div>
+    </div>
+
+    {% for category, items in categories.items() %}
+    <div class="category-block">
+        <div class="category-label">{{ category }}</div>
+        <div class="tabs-row">
+            {% for id, track in items %}
+                <button class="medical-tab {% if loop.first and loop.index0 == 0 and category == (categories.keys()|list|first) %}active-channel{% endif %}"
+                        id="tab-node-{{id}}" onclick="switchActiveChannel('{{id}}')">
+                    <span class="engine-dot {{ track.engine.type }}"></span>{{track.title}}
+                </button>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="console-viewport">
+        <div class="chat-logs-stream" id="viewport-stream-box"></div>
+        <div class="transmission-tray">
+            <input type="text" id="metric-input-field" placeholder="Enter the requested value..." onkeydown="if(event.key==='Enter') transmitMetricVector()">
+            <button class="send-btn" onclick="transmitMetricVector()">Submit</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const caseId = "case_session_" + Math.random().toString(36).substr(2, 9);
+    let activeChannel = "{{ tracks.keys()|list|first }}";
+    const sessionRenderLogs = {};
+    const firstPrompt = {{ first_prompt|tojson }};
+
+    {% for id, track in tracks.items() %}
+        sessionRenderLogs["{{id}}"] = `<div class="bubble bot"><strong>[System]: Opened {{track.title}}</strong><br><span style="opacity:0.6; font-size:0.88rem;">{{track.description}}</span><br><br><span style='color:#3b82f6; background:rgba(59,130,246,0.1); padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-right:5px;'>SHARED BASELINE</span> <strong>${firstPrompt}</strong></div>`;
+    {% endfor %}
+
+    document.getElementById("viewport-stream-box").innerHTML = sessionRenderLogs[activeChannel];
+
+    function switchActiveChannel(channelId) {
+        sessionRenderLogs[activeChannel] = document.getElementById("viewport-stream-box").innerHTML;
+        activeChannel = channelId;
+
+        document.querySelectorAll('.medical-tab').forEach(btn => btn.classList.remove('active-channel'));
+        document.getElementById("tab-node-" + channelId).classList.add('active-channel');
+
+        document.getElementById("viewport-stream-box").innerHTML = sessionRenderLogs[channelId];
+        const stream = document.getElementById("viewport-stream-box");
+        stream.scrollTop = stream.scrollHeight;
+    }
+
+    async function transmitMetricVector() {
+        const input = document.getElementById("metric-input-field");
+        const entry = input.value.trim();
+        if(!entry) return;
+
+        appendRenderBlock(`<div class="bubble user">${entry}</div>`);
+        input.value = "";
+
+        try {
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: caseId, trackId: activeChannel, message: entry })
+            });
+            const payload = await response.json();
+            appendRenderBlock(`<div class="bubble bot">${payload.reply}</div>`);
+        } catch (error) {
+            appendRenderBlock(`<div class="bubble bot" style="border-left-color:#ef4444;">❌ <strong>Connection error:</strong> Could not reach the server.</div>`);
+        }
+    }
+
+    function appendRenderBlock(html) {
+        const stream = document.getElementById("viewport-stream-box");
+        stream.innerHTML += html;
+        stream.scrollTop = stream.scrollHeight;
+        sessionRenderLogs[activeChannel] = stream.innerHTML;
+    }
+
+    function toggleGlobalDataDump(btn) {
+        const displayPanel = btn.nextElementSibling;
+        if(displayPanel.style.display === "none" || !displayPanel.style.display) {
+            displayPanel.style.display = "block";
+            btn.innerText = "Hide Shared Patient Profile";
+        } else {
+            displayPanel.style.display = "none";
+            btn.innerText = "Inspect Shared Patient Profile";
+        }
+    }
+</script>
+</body>
+</html>

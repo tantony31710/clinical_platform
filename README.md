@@ -16,12 +16,12 @@ clinicians and regulators, not through more code.
 
 ## Interfaces
 
-The application is served from the root URL (`/`) and presents a unified
-**clinical dashboard**. This interface provides structured intake forms per
-specialty, a shared "Patient Baseline" panel for common metrics, and supports
-both single-specialty and full 17-module panel assessments. Results are
-delivered with calibrated confidence scores, uncertainty banding for ML models,
-and feature-importance explanations.
+- **`/` or `/dashboard`** — the primary interface. Structured intake forms
+  per specialty, a shared "Patient Baseline" panel, single-specialty or
+  full 17-module panel runs, results with calibrated confidence,
+  uncertainty banding, and feature-importance explanations.
+- **`/classic-chat`** — the original conversational chat UI, kept for
+  comparison/backward compatibility.
 
 ## What's real and how it was sourced
 
@@ -79,6 +79,7 @@ clinical_platform/
 │   └── specialties.py         # The ONE file that defines every module: prompts,
 │                               # validation ranges, and which engine runs it
 ├── core/
+│   ├── session.py             # Chat-mode question-flow state machine (classic UI)
 │   ├── interceptors.py        # Input validation/sanitization
 │   └── exceptions.py
 ├── engines/
@@ -90,10 +91,9 @@ clinical_platform/
 │   ├── *.pkl                  # 4 trained, calibrated model files
 │   └── training_report.json   # Honest accuracy/AUC/Brier/feature-importance numbers
 ├── data/                      # Source CSVs for the 4 ML models
-├── templates/                 # Jinja2 templates for the Flask UI
-│   ├── dashboard.html         # The main dashboard interface
-│   ├── history.html           # Patient assessment history view
-│   └── performance.html       # ML model performance report view
+├── templates/
+│   ├── dashboard.html         # Primary UI — form-based clinical dashboard
+│   └── index.html             # Legacy chat UI (served at /classic-chat)
 └── requirements.txt
 ```
 
