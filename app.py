@@ -1,24 +1,71 @@
 # app.py
-from flask import Flask, request, jsonify, render_template
 import os
+import secrets
+import logging
+from flask import Flask, request, jsonify, render_template, session as flask_session, abort
 
 from config.specialties import GLOBAL_BASELINE_FEATURES, SPECIALTY_FIELDS
 from config.advice import SPECIALTY_ADVICE
 from core.session import ClinicalSession
 from core.interceptors import MetricSanitizer
 from core.exceptions import PhysiologicalBoundsViolation
+from core.auth import rate_limit
 from engines.model_engine import MLModelEngine
 from engines.orchestrator import compile_comprehensive_diagnostics
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
-active_cases = {}
+
+# ── Security configuration ────────────────────────────────────────────────────
+app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") == "production",
+    PERMANENT_SESSION_LIFETIME=3600,
+)
+
+active_cases: dict = {}
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-print("\n=======================================================")
-print("🌐 MOUNTING MULTI-SPECIALTY CLINICAL DIAGNOSTIC PLATFORM")
-print("=======================================================")
 
-ml_engines = {}
+# ── Security headers middleware ───────────────────────────────────────────────
+@app.after_request
+def set_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "connect-src 'self'; "
+        "img-src 'self' data:; "
+        "frame-ancestors 'none';"
+    )
+    return response
+
+
+# ── CSRF helpers ──────────────────────────────────────────────────────────────
+def _get_or_create_csrf_token() -> str:
+    if "csrf_token" not in flask_session:
+        flask_session["csrf_token"] = secrets.token_hex(32)
+    return flask_session["csrf_token"]
+
+
+def _verify_csrf(data: dict) -> bool:
+    token = data.get("_csrf") or request.headers.get("X-CSRF-Token", "")
+    expected = flask_session.get("csrf_token", "")
+    return secrets.compare_digest(token, expected) if (token and expected) else False
+
+logger.info("MOUNTING MULTI-SPECIALTY CLINICAL DIAGNOSTIC PLATFORM")
+
+ml_engines: dict = {}
 for specialty_id, spec in SPECIALTY_FIELDS.items():
     engine_cfg = spec["engine"]
     if engine_cfg["type"] != "ml":
@@ -26,12 +73,13 @@ for specialty_id, spec in SPECIALTY_FIELDS.items():
     model_path = os.path.join(BASE_DIR, engine_cfg["model_file"])
     engine = MLModelEngine(model_path, len(engine_cfg["feature_order"]), specialty_id)
     ml_engines[specialty_id] = engine
-    status = "✅ LOADED" if engine.is_available() else f"⚠️  UNAVAILABLE ({engine.load_error})"
-    print(f"  [{specialty_id}] {spec['title']} -> {engine_cfg['model_file']} : {status}")
+    status = "LOADED" if engine.is_available() else f"UNAVAILABLE ({engine.load_error})"
+    logger.info("[%s] %s -> %s : %s", specialty_id, spec['title'], engine_cfg['model_file'], status)
 
-print(f"\n  {len(ml_engines)} ML model(s) registered, "
-      f"{len([s for s in SPECIALTY_FIELDS.values() if s['engine']['type']=='rule'])} rule engine(s) registered, "
-      f"{len(SPECIALTY_FIELDS)} total specialty tabs.\n")
+logger.info("%d ML model(s), %d rule engine(s), %d total specialties registered.",
+    len(ml_engines),
+    len([s for s in SPECIALTY_FIELDS.values() if s['engine']['type'] == 'rule']),
+    len(SPECIALTY_FIELDS))
 
 
 # ── Template context helper ──────────────────────────────────────────────────
@@ -45,6 +93,7 @@ def _build_context():
         categories=categories,
         global_fields=GLOBAL_BASELINE_FEATURES,
         advice=SPECIALTY_ADVICE,
+        csrf_token=_get_or_create_csrf_token(),
     )
 
 
@@ -76,8 +125,11 @@ def _find_rules(key, track_id):
 
 
 @app.route('/api/assess', methods=['POST'])
+@rate_limit(max_calls=20, window_seconds=60)
 def api_assess():
     data = request.get_json() or {}
+    if not _verify_csrf(data):
+        return jsonify({"error": "csrf_invalid", "message": "Invalid or missing CSRF token."}), 403
     track_id = data.get('trackId', 'ALL')
     raw_profile = data.get('profile', {})
 
@@ -112,8 +164,11 @@ def api_assess():
 
 # ── Classic chat API ──────────────────────────────────────────────────────────
 @app.route('/chat', methods=['POST'])
+@rate_limit(max_calls=30, window_seconds=60)
 def chat():
     data = request.get_json() or {}
+    if not _verify_csrf(data):
+        return jsonify({"reply": "❌ Invalid CSRF token. Please refresh the page."}), 403
     user_id  = data.get('userId')
     track_id = data.get('trackId')
     user_msg = str(data.get('message', '')).strip()
@@ -232,4 +287,6 @@ def chat():
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("FLASK_ENV", "development") != "production"
+    app.run(host='127.0.0.1', port=port, debug=debug)
