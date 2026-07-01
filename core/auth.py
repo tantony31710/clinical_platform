@@ -7,6 +7,7 @@ Provides:
   - Simple in-memory rate limiter to protect expensive ML inference endpoints.
 """
 import os
+import secrets
 import time
 import hashlib
 import logging
@@ -19,13 +20,18 @@ from flask import session, request, jsonify, redirect, url_for
 logger = logging.getLogger(__name__)
 
 # ── Session secret ────────────────────────────────────────────────────────────
-# Must be set via environment variable. A missing secret is a hard startup error.
+# Prefer SECRET_KEY from environment. Fall back to a generated key so the app
+# starts on Vercel even without the env var set — log a loud warning instead of
+# crashing, so the operator knows to fix it.
 SECRET_KEY: str | None = os.environ.get("SECRET_KEY")
 
 if not SECRET_KEY:
-    raise RuntimeError(
-        "[Auth] SECRET_KEY environment variable is not set. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    SECRET_KEY = secrets.token_hex(32)
+    logger.warning(
+        "[Auth] SECRET_KEY environment variable is NOT set. "
+        "A random key has been generated for this process — sessions will not "
+        "survive restarts or multiple instances. "
+        "Set SECRET_KEY in your Vercel project environment variables."
     )
 
 
