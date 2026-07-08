@@ -4,21 +4,32 @@ from core.exceptions import UnknownEngineTypeError
 from engines.rule_engines import RULE_FUNCTIONS
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def fetch_feature(profile, key, specialty_id):
     """
     Resolves a single feature value for model input: prefers what the patient
     already answered, falls back to the configured default, and normalizes
     yes/no choice answers to 1.0/0.0 for numeric model matrices.
     """
-    val = profile.get(key, None)
+    val = profile.get(key)
 
+    # 1. Resolve value (Profile -> Global -> Specialty -> 0.0)
     if val is None:
         if key in GLOBAL_BASELINE_FEATURES:
             val = GLOBAL_BASELINE_FEATURES[key].get("default", 0.0)
+            logger.debug("[Orchestrator] Using global default for '%s': %s", key, val)
         else:
             registry = SPECIALTY_FIELDS.get(specialty_id, {}).get("registry", {})
             val = registry.get(key, {}).get("default", 0.0)
+            if val != 0.0:
+                logger.debug("[Orchestrator] Using specialty default for '%s': %s", key, val)
+            else:
+                logger.debug("[Orchestrator] No value or default found for '%s'. Defaulting to 0.0", key)
 
+    # 2. Normalization & Type Conversion
     if isinstance(val, str):
         cleaned = val.strip().lower()
         if cleaned == "yes":
@@ -28,11 +39,13 @@ def fetch_feature(profile, key, specialty_id):
         try:
             return float(cleaned)
         except ValueError:
+            logger.error("[Orchestrator] Failed to convert string '%s' to float for key '%s'.", cleaned, key)
             return 0.0
 
     try:
         return float(val)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as e:
+        logger.error("[Orchestrator] Type conversion failed for key '%s' with value '%s': %s", key, val, e)
         return 0.0
 
 
@@ -96,8 +109,12 @@ def compile_comprehensive_diagnostics(profile, ml_engines):
                 raise UnknownEngineTypeError(specialty_id, engine_type)
 
         except Exception as e:
-            print(f"❌ [Orchestrator Fault] '{specialty_id}' pipeline crashed: {e}")
-            results[specialty_id] = {"status": "SYSTEM_FAULT", "verdict": f"Pipeline fault: {e}",
-                                      "confidence": 0.0, "engine_type": engine_type}
+            logger.error("[Orchestrator Fault] '%s' pipeline crashed: %s", specialty_id, e, exc_info=True)
+            results[specialty_id] = {
+                "status": "SYSTEM_FAULT", 
+                "verdict": f"Pipeline fault: {str(e)}",
+                "confidence": 0.0, 
+                "engine_type": engine_type
+            }
 
     return results

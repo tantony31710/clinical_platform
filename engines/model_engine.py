@@ -4,9 +4,12 @@ import json
 import numpy as np
 import pickle
 import os
+import logging
 from core.exceptions import VectorDimensionDriftError
 
 warnings.filterwarnings("ignore", message="X does not have valid feature names")
+
+logger = logging.getLogger(__name__)
 
 
 class MLModelEngine:
@@ -36,16 +39,20 @@ class MLModelEngine:
 
         if not os.path.exists(model_path):
             self.load_error = f"Model file not found at {model_path}."
+            logger.error("[ModelEngine] Model file missing for '%s': %s", specialty_id, model_path)
         else:
             try:
                 with open(model_path, "rb") as f:
                     loaded = pickle.load(f)
                 if not hasattr(loaded, "predict"):
                     self.load_error = f"Loaded object for '{specialty_id}' has no predict() method."
+                    logger.error("[ModelEngine] Invalid model object for '%s'", specialty_id)
                 else:
                     self.model = loaded
+                    logger.info("[ModelEngine] Successfully loaded model for '%s'", specialty_id)
             except Exception as e:
                 self.load_error = f"Failed to load model for '{specialty_id}': {e}"
+                logger.error("[ModelEngine] Exception loading model for '%s': %s", specialty_id, e)
 
         self._load_training_report(model_path)
 
@@ -61,9 +68,10 @@ class MLModelEngine:
             for entry in report.values():
                 if entry.get("model_file") == model_filename:
                     self.feature_importances = entry.get("feature_importances", [])
+                    logger.debug("[ModelEngine] Loaded feature importances for '%s'", self.specialty_id)
                     break
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("[ModelEngine] Could not read training report for '%s': %s", self.specialty_id, e)
 
     def is_available(self):
         return self.model is not None
@@ -82,19 +90,34 @@ class MLModelEngine:
         if self.model is None:
             raise RuntimeError(self.load_error or "Model unavailable.")
 
-        feature_matrix = np.array([ordered_values], dtype=float)
-        prediction = int(self.model.predict(feature_matrix)[0])
+        # 1. Input Validation
+        try:
+            feature_matrix = np.array(ordered_values, dtype=float)
+        except (TypeError, ValueError) as e:
+            logger.error("[ModelEngine] Non-numeric feature vector provided for '%s': %s", self.specialty_id, e)
+            raise ValueError(f"Non-numeric features provided for {self.specialty_id}")
 
+        # 2. Inference
+        try:
+            prediction = int(self.model.predict(feature_matrix)[0])
+        except Exception as e:
+            logger.error("[ModelEngine] Prediction error for '%s': %s", self.specialty_id, e)
+            raise RuntimeError(f"Inference failed for {self.specialty_id}")
+
+        # 3. Probability Calibration
         positive_proba = 0.5
         if hasattr(self.model, "predict_proba"):
             try:
                 proba_row = self.model.predict_proba(feature_matrix)[0]
                 positive_proba = float(proba_row[1]) if len(proba_row) > 1 else float(proba_row[0])
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("[ModelEngine] Could not get predict_proba for '%s': %s", self.specialty_id, e)
 
         confidence_of_prediction = (positive_proba if prediction == 1 else (1.0 - positive_proba)) * 100.0
         uncertain = self.UNCERTAIN_BAND[0] <= positive_proba <= self.UNCERTAIN_BAND[1]
+
+        logger.info("[ModelEngine] Inference success for '%s': Pred=%d, Conf=%.2f%%, Uncertain=%s", 
+                    self.specialty_id, prediction, confidence_of_prediction, uncertain)
 
         return {
             "prediction": prediction,
@@ -102,3 +125,4 @@ class MLModelEngine:
             "uncertain": uncertain,
             "top_drivers": self.feature_importances[:3],
         }
+
